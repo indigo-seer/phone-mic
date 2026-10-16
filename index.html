@@ -2,249 +2,374 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Phone Mic</title>
 <style>
-:root{color-scheme:light dark;--bg:#fff;--fg:#1a1a1a;--mut:#666;--card:#f3f3f5;--acc:#2563eb;--ok:#16a34a;--bad:#dc2626}
-@media(prefers-color-scheme:dark){:root{--bg:#111;--fg:#eee;--mut:#999;--card:#1c1c20;--acc:#60a5fa;--ok:#4ade80;--bad:#f87171}}
+:root{color-scheme:light dark;--bg:#f4f5f9;--fg:#15171c;--mut:#6b7080;--card:#fff;--line:#0000001a;--acc:#6366f1;--acc2:#8b5cf6;--ok:#16a34a;--bad:#dc2626;--warn:#d97706;--trk:#00000014}
+@media(prefers-color-scheme:dark){:root{--bg:#0d0e12;--fg:#eceef4;--mut:#8b90a0;--card:#171920;--line:#ffffff17;--acc:#818cf8;--acc2:#a78bfa;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;--trk:#ffffff14}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif;padding:20px;max-width:640px;margin-inline:auto}
-h1{font-size:1.3rem;margin:0 0 4px}
-p.sub{color:var(--mut);margin:0 0 16px}
-.card{background:var(--card);border-radius:12px;padding:14px;margin:12px 0}
-.card h2{font-size:.95rem;margin:0 0 8px}
-button,select{font:inherit;padding:10px 14px;border-radius:8px;border:1px solid #8885;background:var(--bg);color:var(--fg)}
-button.p{background:var(--acc);color:#fff;border:0}
-button:disabled{opacity:.5}
-textarea{width:100%;height:70px;font:12px monospace;background:var(--bg);color:var(--fg);border:1px solid #8885;border-radius:8px;padding:8px}
-label{display:block;margin:4px 0}
-.qr{background:#fff;padding:10px;border-radius:8px;display:inline-block;max-width:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 -apple-system,system-ui,"Segoe UI",sans-serif;padding:max(18px,env(safe-area-inset-top)) 16px 40px;max-width:680px;margin-inline:auto}
+header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;color:#fff;flex:none}
+h1{font-size:1.25rem;margin:0}
+#sub{margin:0;color:var(--mut);font-size:.85rem}
+.pill{margin-left:auto;display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:.8rem;max-width:55%}
+.pill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mut);flex:none}
+.dot.ok{background:var(--ok);box-shadow:0 0 0 4px #22c55e30}.dot.bad{background:var(--bad)}.dot.wait{background:var(--warn);animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.3}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 1px 2px #0000000a}
+.card h2{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:0 0 12px;font-weight:600}
+.hide{display:none!important}
+button{font:inherit;cursor:pointer;padding:11px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+button.p{border:0;color:#fff;font-weight:600;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+button:disabled{opacity:.5;cursor:default}
+select,textarea{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+textarea{font:12px monospace;height:64px;resize:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.ctl:first-of-type{border-top:0;padding-top:0}
+.ctl b{font-weight:550}.ctl small{color:var(--mut);grid-column:1}
+.ctl output{font-variant-numeric:tabular-nums;color:var(--mut);font-size:.85rem;text-align:right}
+.ctl input[type=range]{grid-column:1/-1;margin-top:6px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:var(--trk);outline:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));border:2px solid var(--card);box-shadow:0 1px 4px #0005}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--acc);border:2px solid var(--card)}
+.sw{position:relative;width:44px;height:26px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer;z-index:1}
+.sw i{position:absolute;inset:0;border-radius:99px;background:var(--trk);transition:.2s}
+.sw i:after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0004;transition:.2s}
+.sw input:checked+i{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.sw input:checked+i:after{transform:translateX(18px)}
+.meter{position:relative;height:14px;background:var(--trk);border-radius:7px;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--ok),#facc15 75%,var(--bad))}
+.meter u{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);opacity:.7}
+.qr{background:#fff;padding:12px;border-radius:12px;display:inline-block;max-width:100%}
 .qr svg{display:block;max-width:100%;height:auto}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--mut);margin-right:6px}
-.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
-.meter{height:8px;background:#8883;border-radius:4px;overflow:hidden}
-.meter i{display:block;height:100%;width:0;background:var(--ok)}
-.hide{display:none}
-small{color:var(--mut)}
+.center{text-align:center}
+small.m,.m{color:var(--mut);font-size:.82rem}
+details{margin-top:12px}summary{cursor:pointer;color:var(--mut);font-size:.85rem}
+.orb{width:150px;height:150px;border-radius:50%;margin:24px auto;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.orb.on{animation:pu 2s infinite}
+@keyframes pu{0%{box-shadow:0 0 0 0 #6366f180}100%{box-shadow:0 0 0 40px #6366f100}}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.chip{padding:5px 12px;border-radius:99px;background:var(--trk);font-size:.8rem;color:var(--mut)}.chip.on{background:#6366f126;color:var(--acc)}
 </style>
 </head>
 <body>
-<h1>Phone Mic</h1>
-<p class="sub" id="sub"></p>
+<header>
+  <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></div>
+  <div><h1>Phone Mic</h1><p id="sub"></p></div>
+  <span class="pill"><i class="dot" id="pdot"></i><span id="pstat">Idle</span></span>
+</header>
 
-<!-- PC (receiver) -->
+<!-- ============ PC ============ -->
 <div id="pc" class="hide">
-  <div class="card">
-    <h2>1. Start</h2>
-    <label><input type="checkbox" id="reveal" checked> Ask for mic permission once (reveals LAN IP so pairing is reliable)</label>
-    <div class="row" style="margin-top:8px">
-      <button class="p" id="start">Create pairing code</button>
-      <select id="sink"><option value="">Default output</option></select>
+  <div class="card" id="pair">
+    <h2>Pair your iPhone</h2>
+    <div id="p0">
+      <p class="m" style="margin-top:0">Creates a one-time QR code. Scan it with the iPhone Camera app and it connects automatically.</p>
+      <label class="row" style="margin-bottom:12px"><span class="sw"><input type="checkbox" id="reveal" checked><i></i></span><span class="m">Allow mic permission once (makes LAN connection reliable)</span></label>
+      <button class="p" id="start">Create pairing QR</button>
     </div>
-    <small>Pick your virtual cable (e.g. “CABLE Input” or “iPhone_Mic”) as the output.</small>
+    <div id="p1" class="hide center">
+      <div class="qr" id="qr"></div>
+      <p class="m">Scan with the iPhone Camera app, tap the link, then tap <b>Start microphone</b>.</p>
+      <p class="m" id="relayNote"></p>
+      <details style="text-align:left"><summary>No camera or relay trouble? Pair manually</summary>
+        <p class="m">Open this link on the phone:</p>
+        <textarea id="link" readonly></textarea>
+        <div class="row" style="margin:8px 0"><button id="copyLink">Copy link</button></div>
+        <p class="m">If the phone shows a reply code, paste it here:</p>
+        <textarea id="ans" placeholder="Reply code"></textarea>
+        <div class="row" style="margin-top:8px"><button id="connect">Connect</button></div>
+      </details>
+    </div>
   </div>
-  <div class="card hide" id="step2">
-    <h2>2. Scan with iPhone Camera app</h2>
-    <div class="qr" id="qr"></div>
-    <p><small>No camera? Open this link on the phone:</small></p>
-    <textarea id="link" readonly></textarea>
-    <div class="row"><button id="copyLink">Copy link</button></div>
-  </div>
-  <div class="card hide" id="step3">
-    <h2>3. Paste the phone’s reply code</h2>
-    <textarea id="ans" placeholder="Paste answer code here"></textarea>
-    <div class="row" style="margin-top:8px"><button class="p" id="connect">Connect</button></div>
-  </div>
+
   <div class="card">
-    <span class="dot" id="pdot"></span><span id="pstat">Idle</span>
-    <div class="meter" style="margin-top:8px"><i id="lvl"></i></div>
-    <small id="rtt"></small>
-    <audio id="out" autoplay></audio>
+    <h2>Live level</h2>
+    <div class="meter"><i id="lvl"></i><u id="thrm"></u></div>
+    <div class="row m" style="justify-content:space-between;margin-top:8px"><span id="rtt">—</span><button id="again" style="padding:6px 12px">New pairing</button></div>
   </div>
+
+  <div class="card">
+    <h2>Audio</h2>
+    <div class="ctl"><b>Gain</b><output id="v-gain"></output><input type="range" min="-20" max="20" step="1" data-k="gain"></div>
+    <div class="ctl"><b>Noise gate</b><label class="sw"><input type="checkbox" data-k="gate"><i></i></label><small>Silences the mic below the threshold (white line on meter)</small></div>
+    <div class="ctl"><b>Gate threshold</b><output id="v-thr"></output><input type="range" min="-70" max="-20" step="1" data-k="thr"></div>
+    <div class="ctl"><b>Low-cut filter</b><label class="sw"><input type="checkbox" data-k="hp"><i></i></label><small>Removes rumble and handling thump</small></div>
+    <div class="ctl"><b>Cutoff</b><output id="v-hpf"></output><input type="range" min="40" max="300" step="5" data-k="hpf"></div>
+    <div class="ctl"><b>Limiter</b><label class="sw"><input type="checkbox" data-k="lim"><i></i></label><small>Stops loud peaks from clipping</small></div>
+  </div>
+
+  <div class="card">
+    <h2>Phone processing (applied live on the iPhone)</h2>
+    <div class="ctl"><b>Noise suppression</b><label class="sw"><input type="checkbox" data-k="ns"><i></i></label></div>
+    <div class="ctl"><b>Echo cancellation</b><label class="sw"><input type="checkbox" data-k="ec"><i></i></label><small>Turn on only if you use speakers</small></div>
+    <div class="ctl"><b>Auto gain</b><label class="sw"><input type="checkbox" data-k="agc"><i></i></label></div>
+  </div>
+
+  <div class="card">
+    <h2>Output device</h2>
+    <select id="sink"><option value="">Default output</option></select>
+    <p class="m" style="margin-bottom:0">Pick your virtual cable (“CABLE Input” on Windows, “iPhone_Mic” on Linux).</p>
+  </div>
+  <audio id="out" muted></audio>
 </div>
 
-<!-- Phone (sender) -->
-<div id="ph" class="hide">
-  <div class="card">
-    <h2>Microphone options</h2>
-    <label><input type="checkbox" id="ns" checked> Noise suppression</label>
-    <label><input type="checkbox" id="ec"> Echo cancellation</label>
-    <label><input type="checkbox" id="agc"> Auto gain</label>
-    <div class="row" style="margin-top:8px"><button class="p" id="go">Start microphone</button></div>
+<!-- ============ PHONE ============ -->
+<div id="ph" class="hide center">
+  <div class="orb" id="orb"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></div>
+  <button class="p" id="go" style="font-size:1.1rem;padding:14px 28px">Start microphone</button>
+  <div class="card hide" id="live" style="text-align:left">
+    <div class="meter"><i id="hlvl"></i></div>
+    <div class="chips"><span class="chip" id="c-ns">Noise suppr.</span><span class="chip" id="c-ec">Echo cancel</span><span class="chip" id="c-agc">Auto gain</span></div>
+    <p class="m center" style="margin:0">Keep this screen open. Adjust everything from your PC.</p>
   </div>
-  <div class="card hide" id="reply">
-    <h2>Reply code → send to your PC</h2>
-    <div class="qr" id="aqr"></div>
-    <textarea id="aout" readonly style="margin-top:8px"></textarea>
-    <div class="row"><button id="copyA">Copy code</button></div>
-    <small>Paste it into the PC page (message it to yourself, Notes, KDE Connect, etc.).</small>
-  </div>
-  <div class="card">
-    <span class="dot" id="hdot"></span><span id="hstat">Idle</span>
-    <div class="meter" style="margin-top:8px"><i id="hlvl"></i></div>
-    <small>Keep this tab open and the screen on.</small>
+  <div class="card hide" id="fb" style="text-align:left">
+    <h2>Relay unreachable – manual pairing</h2>
+    <p class="m" style="margin-top:0">Copy this reply code into the PC page (Pair manually):</p>
+    <textarea id="aout" readonly></textarea>
+    <div class="row" style="margin-top:8px"><button id="copyA">Copy code</button></div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const b64u = u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const RELAY = 'https://ntfy.sh/';   // only carries an AES-encrypted blob; swap for your own ntfy server if you like
+const b64u = u => btoa(String.fromCharCode(...u)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const unb64u = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
-async function pack(d){
-  const cs = new Blob([JSON.stringify({t:d.type,s:d.sdp})]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-  return b64u(new Uint8Array(await new Response(cs).arrayBuffer()));
+const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+
+async function deflate(o){
+  const cs = new Blob([JSON.stringify({t:o.type,s:o.sdp})]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(cs).arrayBuffer());
 }
-async function unpack(code){
-  const ds = new Blob([unb64u(code.trim())]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-  const o = JSON.parse(await new Response(ds).text());
+async function inflate(u){
+  const o = JSON.parse(await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text());
   return {type:o.t, sdp:o.s};
 }
-// Low-latency Opus: mono, small frames, FEC
+const importKey = raw => crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt','decrypt']);
+async function seal(key, u8){
+  const iv = rnd(12), ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, u8));
+  const out = new Uint8Array(12+ct.length); out.set(iv); out.set(ct,12); return b64u(out);
+}
+async function open(key, s){
+  const u = unb64u(s);
+  return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:u.slice(0,12)}, key, u.slice(12)));
+}
 function tune(sdp){
   const m = sdp.match(/a=rtpmap:(\d+) opus\/48000/); if(!m) return sdp;
-  const pt = m[1];
-  sdp = sdp.replace(new RegExp('a=fmtp:'+pt+' ([^\\r\\n]*)'), (x,p)=>{
+  return sdp.replace(new RegExp('a=fmtp:'+m[1]+' ([^\\r\\n]*)'), (x,p)=>{
     const add = ['useinbandfec=1','minptime=10','stereo=0','maxaveragebitrate=64000'].filter(k=>!p.includes(k.split('=')[0]+'='));
-    return 'a=fmtp:'+pt+' '+p+(add.length?';'+add.join(';'):'');
+    return 'a=fmtp:'+m[1]+' '+p+(add.length?';'+add.join(';'):'');
   });
-  return sdp;
 }
 function gathered(pc){
   return new Promise(res=>{
     if(pc.iceGatheringState==='complete') return res();
-    const t=setTimeout(res,3500);
+    const t = setTimeout(res,3500);
     pc.addEventListener('icegatheringstatechange',()=>{ if(pc.iceGatheringState==='complete'){clearTimeout(t);res();} });
   });
 }
 function drawQR(el, text){
-  try{
-    const q = qrcode(0,'L'); q.addData(text); q.make();
-    el.innerHTML = q.createSvgTag({scale:4, margin:0});
-  }catch(e){ el.textContent = 'QR unavailable – use the link below.'; }
+  try{ const q = qrcode(0,'L'); q.addData(text); q.make(); el.innerHTML = q.createSvgTag({scale:4, margin:0}); }
+  catch(e){ el.textContent = 'QR unavailable – use manual pairing.'; }
 }
-function meter(stream, bar){
-  const ctx = new (window.AudioContext||window.webkitAudioContext)();
-  const an = ctx.createAnalyser(); an.fftSize = 512;
-  ctx.createMediaStreamSource(stream).connect(an);
-  const buf = new Uint8Array(an.fftSize);
-  (function tick(){
-    an.getByteTimeDomainData(buf);
-    let m=0; for(const v of buf) m=Math.max(m,Math.abs(v-128));
-    bar.style.width = Math.min(100,m/128*140)+'%';
-    requestAnimationFrame(tick);
-  })();
-}
-function status(dotId, txtId, pc){
-  const upd=()=>{
-    const s=pc.connectionState;
-    $(txtId).textContent = s==='connected'?'Connected – encrypted (DTLS-SRTP)':s;
-    $(dotId).className = 'dot '+(s==='connected'?'ok':(s==='failed'||s==='disconnected')?'bad':'');
+function track(pc){
+  const upd = ()=>{
+    const s = pc.connectionState;
+    $('pstat').textContent = s==='connected' ? 'Connected · encrypted' : s==='new' ? 'Waiting…' : s;
+    $('pdot').className = 'dot '+(s==='connected'?'ok':(s==='failed'||s==='disconnected')?'bad':'wait');
   };
   pc.onconnectionstatechange = upd; upd();
 }
-
 function showErr(e){
-  const msg = 'Error: ' + ((e && (e.message || (e.reason && e.reason.message || e.reason))) || e);
-  ['pstat','hstat'].forEach(id=>{ if($(id)) $(id).textContent = msg; });
-  ['pdot','hdot'].forEach(id=>{ if($(id)) $(id).className='dot bad'; });
-  ['start','go'].forEach(id=>{ if($(id)) $(id).disabled=false; });
+  $('pstat').textContent = 'Error: '+((e&&(e.message||(e.reason&&e.reason.message||e.reason)))||e);
+  $('pdot').className = 'dot bad';
+  ['start','go'].forEach(id=>{ if($(id)) $(id).disabled = false; });
   console.error(e);
 }
-window.addEventListener('unhandledrejection', showErr);
-window.addEventListener('error', showErr);
+addEventListener('unhandledrejection', showErr);
+addEventListener('error', showErr);
 
-const hash = new URLSearchParams(location.hash.slice(1));
-if(hash.get('o')) initPhone(hash.get('o')); else initPC();
+const H = new URLSearchParams(location.hash.slice(1));
+if(H.get('o')) initPhone(); else initPC();
 
-/* ---------------- PC receiver ---------------- */
+/* =============== PC =============== */
+const WK = `class G extends AudioWorkletProcessor{constructor(){super();this.g=1;this.t=0;this.e=0;this.o=1;this.h=0;this.port.onmessage=e=>Object.assign(this,e.data)}
+process(i,o){const x=i[0][0],out=o[0];if(!x)return true;const hold=sampleRate*.15;
+for(let n=0;n<x.length;n++){const a=Math.abs(x[n]);this.e=a>this.e?a:this.e*.9985;
+if(this.t>0&&this.e<this.t)this.h++;else this.h=0;
+const tg=(this.t>0&&this.h>hold)?0:1;this.o+=(tg-this.o)*(tg>this.o?.02:.0015);
+const y=x[n]*this.g*this.o;for(let c=0;c<out.length;c++)out[c][n]=y}
+return true}}registerProcessor('gate',G)`;
+
+const S = {gain:0,gate:true,thr:-50,hp:true,hpf:80,lim:true,ns:true,ec:false,agc:false,sink:''};
+try{ Object.assign(S, JSON.parse(localStorage.getItem('phonemic')||'{}')); }catch(_){}
+let ctx, gate, hp, comp, an, pc, dc, es;
+
 function initPC(){
   $('pc').classList.remove('hide');
-  $('sub').textContent = 'Receiver: plays your phone’s mic into a virtual audio cable.';
-  let pc;
+  $('sub').textContent = 'Receiver · plays your phone into a virtual cable';
+  const fmt = ()=>{
+    $('v-gain').textContent = (S.gain>0?'+':'')+S.gain+' dB';
+    $('v-thr').textContent = S.thr+' dB';
+    $('v-hpf').textContent = S.hpf+' Hz';
+    $('thrm').style.left = ((S.thr+70)/70*100)+'%';
+    $('thrm').style.display = S.gate ? '' : 'none';
+  };
+  document.querySelectorAll('[data-k]').forEach(el=>{
+    const k = el.dataset.k, cb = el.type==='checkbox';
+    cb ? el.checked = S[k] : el.value = S[k];
+    el.oninput = ()=>{
+      S[k] = cb ? el.checked : +el.value;
+      try{ localStorage.setItem('phonemic', JSON.stringify(S)); }catch(_){}
+      fmt(); applyAudio(); if(['ns','ec','agc'].includes(k)) sendCtl();
+    };
+  });
+  fmt();
+
   async function fillSinks(){
-    if(!('setSinkId' in HTMLMediaElement.prototype)){ $('sink').disabled=true; return; }
-    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audiooutput');
-    $('sink').innerHTML = '<option value="">Default output</option>' +
-      devs.map(d=>`<option value="${d.deviceId}">${d.label||d.deviceId}</option>`).join('');
+    const d = (await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='audiooutput');
+    $('sink').innerHTML = '<option value="">Default output</option>' + d.map(x=>`<option value="${x.deviceId}">${x.label||x.deviceId}</option>`).join('');
+    $('sink').value = S.sink;
   }
-  fillSinks();
-  $('sink').onchange = ()=> $('out').setSinkId($('sink').value).catch(e=>alert(e));
+  fillSinks().catch(()=>{});
+  $('sink').onchange = ()=>{
+    S.sink = $('sink').value;
+    try{ localStorage.setItem('phonemic', JSON.stringify(S)); }catch(_){}
+    if(ctx && ctx.setSinkId) ctx.setSinkId(S.sink).catch(showErr);
+  };
+
+  function applyAudio(){
+    if(!gate) return;
+    const t = ctx.currentTime;
+    gate.port.postMessage({g:Math.pow(10,S.gain/20), t:S.gate?Math.pow(10,S.thr/20):0});
+    hp.frequency.setTargetAtTime(S.hp?S.hpf:10, t, .01);
+    comp.threshold.value = S.lim ? -4 : 0;
+    comp.ratio.value = S.lim ? 20 : 1;
+  }
+  function sendCtl(){ if(dc && dc.readyState==='open') dc.send(JSON.stringify({ns:S.ns,ec:S.ec,agc:S.agc})); }
+
+  function buildGraph(stream){
+    const src = ctx.createMediaStreamSource(stream);
+    hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.Q.value = .7;
+    gate = new AudioWorkletNode(ctx,'gate',{outputChannelCount:[2]});
+    comp = ctx.createDynamicsCompressor(); comp.knee.value = 0; comp.attack.value = .003; comp.release.value = .1;
+    an = ctx.createAnalyser(); an.fftSize = 1024;
+    src.connect(hp); hp.connect(gate); gate.connect(comp); comp.connect(an); an.connect(ctx.destination);
+    if(ctx.setSinkId) ctx.setSinkId(S.sink).catch(()=>{});
+    applyAudio();
+    const buf = new Float32Array(an.fftSize); let pk = 0;
+    (function tick(){
+      an.getFloatTimeDomainData(buf);
+      let m = 0; for(const v of buf) m = Math.max(m,Math.abs(v));
+      pk = Math.max(m, pk*.92);
+      $('lvl').style.width = Math.max(0,Math.min(100,(20*Math.log10(pk||1e-5)+70)/70*100))+'%';
+      requestAnimationFrame(tick);
+    })();
+  }
 
   $('start').onclick = async ()=>{
     $('start').disabled = true;
+    ctx = new AudioContext({latencyHint:'interactive'}); await ctx.resume();
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WK],{type:'text/javascript'})));
     if($('reveal').checked){
-      try{ (await navigator.mediaDevices.getUserMedia({audio:true})).getTracks().forEach(t=>t.stop()); }catch(e){}
-      await fillSinks();
+      try{ (await navigator.mediaDevices.getUserMedia({audio:true})).getTracks().forEach(t=>t.stop()); await fillSinks(); }catch(_){}
     }
     pc = new RTCPeerConnection({iceServers:[]});
+    dc = pc.createDataChannel('ctl'); dc.onopen = sendCtl;
     pc.addTransceiver('audio',{direction:'recvonly'});
     pc.ontrack = e=>{
-      $('out').srcObject = e.streams[0];
       try{ e.receiver.jitterBufferTarget = 0; }catch(_){}
       try{ e.receiver.playoutDelayHint = 0; }catch(_){}
-      meter(e.streams[0], $('lvl'));
-      if($('sink').value) $('out').setSinkId($('sink').value).catch(()=>{});
+      $('out').srcObject = e.streams[0]; $('out').play().catch(()=>{});   // keeps Chrome pulling audio
+      buildGraph(e.streams[0]);
     };
-    status('pdot','pstat',pc);
-    const off = await pc.createOffer();
-    off.sdp = tune(off.sdp);
-    await pc.setLocalDescription(off);
-    await gathered(pc);
-    const code = await pack(pc.localDescription);
-    const url = location.origin + location.pathname + '#o=' + code;
-    $('link').value = url;
-    drawQR($('qr'), url);
-    $('step2').classList.remove('hide'); $('step3').classList.remove('hide');
-    $('pstat').textContent = 'Waiting for phone…';
+    track(pc);
+    const off = await pc.createOffer(); off.sdp = tune(off.sdp);
+    await pc.setLocalDescription(off); await gathered(pc);
+
+    const topic = b64u(rnd(12)), raw = rnd(16), key = await importKey(raw);
+    const url = location.origin+location.pathname+'#o='+b64u(await deflate(pc.localDescription))+'&t='+topic+'&k='+b64u(raw);
+    $('link').value = url; drawQR($('qr'), url);
+    $('p0').classList.add('hide'); $('p1').classList.remove('hide');
+
+    es = new EventSource(RELAY+topic+'/sse');
+    es.onerror = ()=>{ $('relayNote').textContent = 'Relay unreachable – use manual pairing below.'; };
+    es.onmessage = async ev=>{
+      try{
+        const j = JSON.parse(ev.data); if(j.event!=='message') return;
+        await pc.setRemoteDescription(await inflate(await open(key, j.message)));
+        es.close();
+      }catch(e){ showErr(e); }
+    };
+    pc.addEventListener('connectionstatechange',()=>{ if(pc.connectionState==='connected') $('pair').classList.add('hide'); });
     setInterval(async ()=>{
       if(pc.connectionState!=='connected') return;
-      const st = await pc.getStats();
-      st.forEach(r=>{ if(r.type==='candidate-pair' && r.nominated && r.currentRoundTripTime!=null)
+      (await pc.getStats()).forEach(r=>{ if(r.type==='candidate-pair'&&r.nominated&&r.currentRoundTripTime!=null)
         $('rtt').textContent = 'Network RTT: '+Math.round(r.currentRoundTripTime*1000)+' ms'; });
     },2000);
   };
   $('copyLink').onclick = ()=> navigator.clipboard.writeText($('link').value);
   $('connect').onclick = async ()=>{
-    try{
-      await pc.setRemoteDescription(await unpack($('ans').value));
-      $('pstat').textContent = 'Connecting…';
-    }catch(e){ alert('Invalid code: '+e.message); }
+    try{ await pc.setRemoteDescription(await inflate(unb64u($('ans').value.trim()))); }
+    catch(e){ alert('Invalid code: '+e.message); }
   };
+  $('again').onclick = ()=> location.reload();
 }
 
-/* ---------------- Phone sender ---------------- */
-function initPhone(code){
+/* =============== Phone =============== */
+function initPhone(){
   $('ph').classList.remove('hide');
-  $('sub').textContent = 'Sender: streams this phone’s microphone to your PC.';
+  $('sub').textContent = 'Sender · streaming this phone’s mic';
+  let stream, sender, cur = {ns:true,ec:false,agc:false};
+  const chips = ()=>['ns','ec','agc'].forEach(k=>$('c-'+k).classList.toggle('on',!!cur[k]));
+  const gum = c => navigator.mediaDevices.getUserMedia({audio:{noiseSuppression:c.ns,echoCancellation:c.ec,autoGainControl:c.agc,channelCount:1},video:false});
+  async function applyMic(c){
+    cur = c; chips();
+    const t = stream.getAudioTracks()[0];
+    try{ await t.applyConstraints({noiseSuppression:c.ns,echoCancellation:c.ec,autoGainControl:c.agc}); }
+    catch(_){
+      const ns = await gum(c); await sender.replaceTrack(ns.getAudioTracks()[0]);
+      stream.getTracks().forEach(x=>x.stop()); stream = ns; meter();
+    }
+  }
+  let actx;
+  function meter(){
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const an = actx.createAnalyser(); an.fftSize = 512;
+    actx.createMediaStreamSource(stream).connect(an);
+    const b = new Uint8Array(an.fftSize);
+    (function tick(){ an.getByteTimeDomainData(b); let m=0; for(const v of b) m=Math.max(m,Math.abs(v-128));
+      $('hlvl').style.width = Math.min(100,m/128*150)+'%'; requestAnimationFrame(tick); })();
+  }
   $('go').onclick = async ()=>{
     $('go').disabled = true;
+    stream = await gum(cur); meter();
+    const pc = new RTCPeerConnection({iceServers:[]});
+    sender = pc.addTrack(stream.getAudioTracks()[0], stream);
+    pc.ondatachannel = e=>{ e.channel.onmessage = m=>applyMic(JSON.parse(m.data)); };
+    track(pc);
+    pc.addEventListener('connectionstatechange',()=>$('orb').classList.toggle('on',pc.connectionState==='connected'));
+    await pc.setRemoteDescription(await inflate(unb64u(H.get('o'))));
+    const ans = await pc.createAnswer(); ans.sdp = tune(ans.sdp);
+    await pc.setLocalDescription(ans); await gathered(pc);
+    const bytes = await deflate(pc.localDescription);
+    $('go').classList.add('hide'); $('live').classList.remove('hide'); chips();
     try{
-      const stream = await navigator.mediaDevices.getUserMedia({audio:{
-        echoCancellation:$('ec').checked, noiseSuppression:$('ns').checked,
-        autoGainControl:$('agc').checked, channelCount:1
-      }, video:false});
-      meter(stream, $('hlvl'));
-      const pc = new RTCPeerConnection({iceServers:[]});
-      stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-      status('hdot','hstat',pc);
-      const offer = await unpack(code);
-      await pc.setRemoteDescription(offer);
-      const ans = await pc.createAnswer();
-      ans.sdp = tune(ans.sdp);
-      await pc.setLocalDescription(ans);
-      await gathered(pc);
-      const out = await pack(pc.localDescription);
-      $('aout').value = out;
-      drawQR($('aqr'), out);
-      $('reply').classList.remove('hide');
-      $('copyA').onclick = ()=> navigator.clipboard.writeText(out);
-      try{ await navigator.wakeLock.request('screen'); }catch(_){}
-      document.addEventListener('visibilitychange', async()=>{
-        if(document.visibilityState==='visible'){ try{ await navigator.wakeLock.request('screen'); }catch(_){} }
-      });
-    }catch(e){ alert('Error: '+e.message); $('go').disabled=false; }
+      const key = await importKey(unb64u(H.get('k')));
+      const r = await fetch(RELAY+H.get('t'), {method:'POST', body: await seal(key, bytes)});
+      if(!r.ok) throw new Error('relay '+r.status);
+    }catch(e){
+      $('aout').value = b64u(bytes); $('fb').classList.remove('hide');
+      $('copyA').onclick = ()=> navigator.clipboard.writeText($('aout').value);
+    }
+    const wl = async()=>{ try{ await navigator.wakeLock.request('screen'); }catch(_){} };
+    wl(); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') wl(); });
   };
 }
 </script>
