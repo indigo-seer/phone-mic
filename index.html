@@ -109,7 +109,7 @@ function tune(sdp){
     const add = ['useinbandfec=1','minptime=10','stereo=0','maxaveragebitrate=64000'].filter(k=>!p.includes(k.split('=')[0]+'='));
     return 'a=fmtp:'+pt+' '+p+(add.length?';'+add.join(';'):'');
   });
-  return sdp.replace(m[0], m[0]+'\r\na=ptime:10');
+  return sdp;
 }
 function gathered(pc){
   return new Promise(res=>{
@@ -144,6 +144,16 @@ function status(dotId, txtId, pc){
   };
   pc.onconnectionstatechange = upd; upd();
 }
+
+function showErr(e){
+  const msg = 'Error: ' + ((e && (e.message || (e.reason && e.reason.message || e.reason))) || e);
+  ['pstat','hstat'].forEach(id=>{ if($(id)) $(id).textContent = msg; });
+  ['pdot','hdot'].forEach(id=>{ if($(id)) $(id).className='dot bad'; });
+  ['start','go'].forEach(id=>{ if($(id)) $(id).disabled=false; });
+  console.error(e);
+}
+window.addEventListener('unhandledrejection', showErr);
+window.addEventListener('error', showErr);
 
 const hash = new URLSearchParams(location.hash.slice(1));
 if(hash.get('o')) initPhone(hash.get('o')); else initPC();
