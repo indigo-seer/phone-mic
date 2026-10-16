@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phone Mic</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1a1a1a;--mut:#666;--card:#f3f3f5;--acc:#2563eb;--ok:#16a34a;--bad:#dc2626}
+@media(prefers-color-scheme:dark){:root{--bg:#111;--fg:#eee;--mut:#999;--card:#1c1c20;--acc:#60a5fa;--ok:#4ade80;--bad:#f87171}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif;padding:20px;max-width:640px;margin-inline:auto}
+h1{font-size:1.3rem;margin:0 0 4px}
+p.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--card);border-radius:12px;padding:14px;margin:12px 0}
+.card h2{font-size:.95rem;margin:0 0 8px}
+button,select{font:inherit;padding:10px 14px;border-radius:8px;border:1px solid #8885;background:var(--bg);color:var(--fg)}
+button.p{background:var(--acc);color:#fff;border:0}
+button:disabled{opacity:.5}
+textarea{width:100%;height:70px;font:12px monospace;background:var(--bg);color:var(--fg);border:1px solid #8885;border-radius:8px;padding:8px}
+label{display:block;margin:4px 0}
+.qr{background:#fff;padding:10px;border-radius:8px;display:inline-block;max-width:100%}
+.qr svg{display:block;max-width:100%;height:auto}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--mut);margin-right:6px}
+.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+.meter{height:8px;background:#8883;border-radius:4px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--ok)}
+.hide{display:none}
+small{color:var(--mut)}
+</style>
+</head>
+<body>
+<h1>Phone Mic</h1>
+<p class="sub" id="sub"></p>
+
+<!-- PC (receiver) -->
+<div id="pc" class="hide">
+  <div class="card">
+    <h2>1. Start</h2>
+    <label><input type="checkbox" id="reveal" checked> Ask for mic permission once (reveals LAN IP so pairing is reliable)</label>
+    <div class="row" style="margin-top:8px">
+      <button class="p" id="start">Create pairing code</button>
+      <select id="sink"><option value="">Default output</option></select>
+    </div>
+    <small>Pick your virtual cable (e.g. “CABLE Input” or “iPhone_Mic”) as the output.</small>
+  </div>
+  <div class="card hide" id="step2">
+    <h2>2. Scan with iPhone Camera app</h2>
+    <div class="qr" id="qr"></div>
+    <p><small>No camera? Open this link on the phone:</small></p>
+    <textarea id="link" readonly></textarea>
+    <div class="row"><button id="copyLink">Copy link</button></div>
+  </div>
+  <div class="card hide" id="step3">
+    <h2>3. Paste the phone’s reply code</h2>
+    <textarea id="ans" placeholder="Paste answer code here"></textarea>
+    <div class="row" style="margin-top:8px"><button class="p" id="connect">Connect</button></div>
+  </div>
+  <div class="card">
+    <span class="dot" id="pdot"></span><span id="pstat">Idle</span>
+    <div class="meter" style="margin-top:8px"><i id="lvl"></i></div>
+    <small id="rtt"></small>
+    <audio id="out" autoplay></audio>
+  </div>
+</div>
+
+<!-- Phone (sender) -->
+<div id="ph" class="hide">
+  <div class="card">
+    <h2>Microphone options</h2>
+    <label><input type="checkbox" id="ns" checked> Noise suppression</label>
+    <label><input type="checkbox" id="ec"> Echo cancellation</label>
+    <label><input type="checkbox" id="agc"> Auto gain</label>
+    <div class="row" style="margin-top:8px"><button class="p" id="go">Start microphone</button></div>
+  </div>
+  <div class="card hide" id="reply">
+    <h2>Reply code → send to your PC</h2>
+    <div class="qr" id="aqr"></div>
+    <textarea id="aout" readonly style="margin-top:8px"></textarea>
+    <div class="row"><button id="copyA">Copy code</button></div>
+    <small>Paste it into the PC page (message it to yourself, Notes, KDE Connect, etc.).</small>
+  </div>
+  <div class="card">
+    <span class="dot" id="hdot"></span><span id="hstat">Idle</span>
+    <div class="meter" style="margin-top:8px"><i id="hlvl"></i></div>
+    <small>Keep this tab open and the screen on.</small>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const b64u = u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+async function pack(d){
+  const cs = new Blob([JSON.stringify({t:d.type,s:d.sdp})]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  return b64u(new Uint8Array(await new Response(cs).arrayBuffer()));
+}
+async function unpack(code){
+  const ds = new Blob([unb64u(code.trim())]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  const o = JSON.parse(await new Response(ds).text());
+  return {type:o.t, sdp:o.s};
+}
+// Low-latency Opus: mono, small frames, FEC
+function tune(sdp){
+  const m = sdp.match(/a=rtpmap:(\d+) opus\/48000/); if(!m) return sdp;
+  const pt = m[1];
+  sdp = sdp.replace(new RegExp('a=fmtp:'+pt+' ([^\\r\\n]*)'), (x,p)=>{
+    const add = ['useinbandfec=1','minptime=10','stereo=0','maxaveragebitrate=64000'].filter(k=>!p.includes(k.split('=')[0]+'='));
+    return 'a=fmtp:'+pt+' '+p+(add.length?';'+add.join(';'):'');
+  });
+  return sdp.replace(m[0], m[0]+'\r\na=ptime:10');
+}
+function gathered(pc){
+  return new Promise(res=>{
+    if(pc.iceGatheringState==='complete') return res();
+    const t=setTimeout(res,3500);
+    pc.addEventListener('icegatheringstatechange',()=>{ if(pc.iceGatheringState==='complete'){clearTimeout(t);res();} });
+  });
+}
+function drawQR(el, text){
+  try{
+    const q = qrcode(0,'L'); q.addData(text); q.make();
+    el.innerHTML = q.createSvgTag({scale:4, margin:0});
+  }catch(e){ el.textContent = 'QR unavailable – use the link below.'; }
+}
+function meter(stream, bar){
+  const ctx = new (window.AudioContext||window.webkitAudioContext)();
+  const an = ctx.createAnalyser(); an.fftSize = 512;
+  ctx.createMediaStreamSource(stream).connect(an);
+  const buf = new Uint8Array(an.fftSize);
+  (function tick(){
+    an.getByteTimeDomainData(buf);
+    let m=0; for(const v of buf) m=Math.max(m,Math.abs(v-128));
+    bar.style.width = Math.min(100,m/128*140)+'%';
+    requestAnimationFrame(tick);
+  })();
+}
+function status(dotId, txtId, pc){
+  const upd=()=>{
+    const s=pc.connectionState;
+    $(txtId).textContent = s==='connected'?'Connected – encrypted (DTLS-SRTP)':s;
+    $(dotId).className = 'dot '+(s==='connected'?'ok':(s==='failed'||s==='disconnected')?'bad':'');
+  };
+  pc.onconnectionstatechange = upd; upd();
+}
+
+const hash = new URLSearchParams(location.hash.slice(1));
+if(hash.get('o')) initPhone(hash.get('o')); else initPC();
+
+/* ---------------- PC receiver ---------------- */
+function initPC(){
+  $('pc').classList.remove('hide');
+  $('sub').textContent = 'Receiver: plays your phone’s mic into a virtual audio cable.';
+  let pc;
+  async function fillSinks(){
+    if(!('setSinkId' in HTMLMediaElement.prototype)){ $('sink').disabled=true; return; }
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audiooutput');
+    $('sink').innerHTML = '<option value="">Default output</option>' +
+      devs.map(d=>`<option value="${d.deviceId}">${d.label||d.deviceId}</option>`).join('');
+  }
+  fillSinks();
+  $('sink').onchange = ()=> $('out').setSinkId($('sink').value).catch(e=>alert(e));
+
+  $('start').onclick = async ()=>{
+    $('start').disabled = true;
+    if($('reveal').checked){
+      try{ (await navigator.mediaDevices.getUserMedia({audio:true})).getTracks().forEach(t=>t.stop()); }catch(e){}
+      await fillSinks();
+    }
+    pc = new RTCPeerConnection({iceServers:[]});
+    pc.addTransceiver('audio',{direction:'recvonly'});
+    pc.ontrack = e=>{
+      $('out').srcObject = e.streams[0];
+      try{ e.receiver.jitterBufferTarget = 0; }catch(_){}
+      try{ e.receiver.playoutDelayHint = 0; }catch(_){}
+      meter(e.streams[0], $('lvl'));
+      if($('sink').value) $('out').setSinkId($('sink').value).catch(()=>{});
+    };
+    status('pdot','pstat',pc);
+    const off = await pc.createOffer();
+    off.sdp = tune(off.sdp);
+    await pc.setLocalDescription(off);
+    await gathered(pc);
+    const code = await pack(pc.localDescription);
+    const url = location.origin + location.pathname + '#o=' + code;
+    $('link').value = url;
+    drawQR($('qr'), url);
+    $('step2').classList.remove('hide'); $('step3').classList.remove('hide');
+    $('pstat').textContent = 'Waiting for phone…';
+    setInterval(async ()=>{
+      if(pc.connectionState!=='connected') return;
+      const st = await pc.getStats();
+      st.forEach(r=>{ if(r.type==='candidate-pair' && r.nominated && r.currentRoundTripTime!=null)
+        $('rtt').textContent = 'Network RTT: '+Math.round(r.currentRoundTripTime*1000)+' ms'; });
+    },2000);
+  };
+  $('copyLink').onclick = ()=> navigator.clipboard.writeText($('link').value);
+  $('connect').onclick = async ()=>{
+    try{
+      await pc.setRemoteDescription(await unpack($('ans').value));
+      $('pstat').textContent = 'Connecting…';
+    }catch(e){ alert('Invalid code: '+e.message); }
+  };
+}
+
+/* ---------------- Phone sender ---------------- */
+function initPhone(code){
+  $('ph').classList.remove('hide');
+  $('sub').textContent = 'Sender: streams this phone’s microphone to your PC.';
+  $('go').onclick = async ()=>{
+    $('go').disabled = true;
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({audio:{
+        echoCancellation:$('ec').checked, noiseSuppression:$('ns').checked,
+        autoGainControl:$('agc').checked, channelCount:1
+      }, video:false});
+      meter(stream, $('hlvl'));
+      const pc = new RTCPeerConnection({iceServers:[]});
+      stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+      status('hdot','hstat',pc);
+      const offer = await unpack(code);
+      await pc.setRemoteDescription(offer);
+      const ans = await pc.createAnswer();
+      ans.sdp = tune(ans.sdp);
+      await pc.setLocalDescription(ans);
+      await gathered(pc);
+      const out = await pack(pc.localDescription);
+      $('aout').value = out;
+      drawQR($('aqr'), out);
+      $('reply').classList.remove('hide');
+      $('copyA').onclick = ()=> navigator.clipboard.writeText(out);
+      try{ await navigator.wakeLock.request('screen'); }catch(_){}
+      document.addEventListener('visibilitychange', async()=>{
+        if(document.visibilityState==='visible'){ try{ await navigator.wakeLock.request('screen'); }catch(_){} }
+      });
+    }catch(e){ alert('Error: '+e.message); $('go').disabled=false; }
+  };
+}
+</script>
+</body>
+</html>
