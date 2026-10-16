@@ -196,7 +196,6 @@ addEventListener('unhandledrejection', showErr);
 addEventListener('error', showErr);
 
 const H = new URLSearchParams(location.hash.slice(1));
-if(H.get('o')) initPhone(); else initPC();
 
 /* =============== PC =============== */
 const WK = `class G extends AudioWorkletProcessor{constructor(){super();this.g=1;this.t=0;this.e=0;this.o=1;this.h=0;this.port.onmessage=e=>Object.assign(this,e.data)}
@@ -372,6 +371,8 @@ function initPhone(){
     wl(); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') wl(); });
   };
 }
+
+if(H.get('o')) initPhone(); else initPC();
 </script>
 </body>
 </html>
